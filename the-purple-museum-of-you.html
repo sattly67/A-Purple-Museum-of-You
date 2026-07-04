@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Purple Museum of You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple-700:#6D28D9;
+    --purple-500:#8B5CF6;
+    --lavender-300:#C4B5FD;
+    --lavender-100:#EDE9FE;
+    --pink-300:#F5A9D0;
+    --gold-200:#FDE7A8;
+    --cream:#FFFCF9;
+    --ink-900:#372A55;
+    --ink-600:#5B4B82;
+    --night-900:#231646;
+    --night-700:#3A2472;
+    --shadow-glow:0 0 24px rgba(139,92,246,.35);
+    --font-display:'Baloo 2', system-ui, sans-serif;
+    --font-body:'Quicksand', system-ui, sans-serif;
+    --font-script:'Caveat', cursive;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:var(--font-body);
+    color:var(--ink-900);
+    background:linear-gradient(160deg,#EDE9FE 0%,#F6EEFE 45%,#FCEAF5 100%);
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.2s !important;}
+  }
+
+  /* ---------- ambient background layers ---------- */
+  #bg-canvas{position:fixed; inset:0; z-index:0; transition:filter .8s ease, opacity .8s ease;}
+  .bubbles{position:fixed; inset:0; z-index:1; overflow:hidden; pointer-events:none;}
+  .bubble{
+    position:absolute; bottom:-10vh; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(196,181,253,.15));
+    opacity:.55; animation:floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0) translateX(0); opacity:0;}
+    8%{opacity:.55;}
+    100%{transform:translateY(-115vh) translateX(20px); opacity:0;}
+  }
+
+  body.dark-scene{background:linear-gradient(180deg,var(--night-900) 0%, var(--night-700) 55%, #4B2E86 100%);}
+  body.dark-scene .page{color:var(--lavender-100);}
+  body.dark-scene .eyebrow, body.dark-scene .script-note{color:var(--lavender-300);}
+
+  body.flash-once::after{
+    content:"";
+    position:fixed; inset:0; z-index:40; background:var(--purple-500);
+    animation:flashPulse .9s ease-out forwards; pointer-events:none;
+  }
+  @keyframes flashPulse{
+    0%{opacity:0;} 25%{opacity:.9;} 100%{opacity:0;}
+  }
+
+  /* ---------- progress rail ---------- */
+  .progress-rail{
+    position:fixed; top:0; left:0; right:0; z-index:30;
+    padding:14px 20px 10px;
+    display:flex; flex-direction:column; gap:6px;
+    background:linear-gradient(to bottom, rgba(255,255,255,.55), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  .progress-track{height:5px; border-radius:99px; background:rgba(139,92,246,.18); overflow:hidden;}
+  .progress-fill{height:100%; width:4%; border-radius:99px; background:linear-gradient(90deg,var(--purple-500),var(--pink-300)); transition:width .5s ease;}
+  .progress-label{font-size:.72rem; letter-spacing:.06em; color:var(--ink-600); font-weight:600;}
+  body.dark-scene .progress-label{color:var(--lavender-100);}
+
+  /* ---------- stage ---------- */
+  #stage{position:fixed; inset:0; z-index:10;}
+  .page{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:80px 28px 40px;
+    opacity:0; transform:translateY(18px) scale(.99);
+    pointer-events:none;
+    transition:opacity .55s ease, transform .55s ease;
+  }
+  .page.active{opacity:1; transform:translateY(0) scale(1); pointer-events:auto;}
+
+  .eyebrow{
+    font-family:var(--font-display); font-weight:700; letter-spacing:.04em;
+    color:var(--purple-700); font-size:.95rem; margin-bottom:6px;
+  }
+  .script-note{font-family:var(--font-script); font-size:1.25rem; color:var(--ink-600); max-width:420px; margin:0 0 18px;}
+  .tw-wrap{max-width:480px; display:flex; flex-direction:column; gap:10px;}
+  p.tw, p.tw-ending{
+    font-size:1.08rem; line-height:1.6; margin:0; min-height:1.6em;
+  }
+  .tw.typing::after, .tw-ending.typing::after{content:"▍"; opacity:.5; animation:blink 1s step-end infinite;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .title-big{
+    font-family:var(--font-display); font-weight:800;
+    font-size:clamp(3rem, 14vw, 5.4rem);
+    color:var(--purple-700);
+    margin:0 0 10px;
+    text-shadow:var(--shadow-glow);
+  }
+
+  /* ---------- buttons ---------- */
+  button{font-family:var(--font-body); border:none; cursor:pointer; background:none;}
+  .next-btn, .action-btn{
+    margin-top:26px; padding:12px 30px; border-radius:99px;
+    font-weight:700; font-size:1rem; color:#fff;
+    background:linear-gradient(90deg,var(--purple-500),var(--pink-300));
+    box-shadow:0 6px 20px rgba(139,92,246,.4);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .next-btn:hover, .action-btn:hover{transform:translateY(-2px); box-shadow:0 10px 26px rgba(139,92,246,.5);}
+  .next-btn:active, .action-btn:active{transform:translateY(0);}
+  .next-btn:focus-visible, .action-btn:focus-visible, .choice-btn:focus-visible, .reveal-btn:focus-visible{
+    outline:3px solid var(--gold-200); outline-offset:3px;
+  }
+  .next-btn.hidden, .action-btn.hidden, .reveal-text.hidden{display:none !important;}
+  .reveal-btn{
+    margin-top:18px; padding:10px 22px; border-radius:99px; font-weight:600;
+    color:var(--purple-700); background:rgba(139,92,246,.12);
+  }
+
+  /* ---------- puppy (generic cloud-pup character, not any licensed design) ---------- */
+  .puppy{position:fixed; width:64px; height:58px; z-index:20; right:22px; bottom:22px; pointer-events:none; transition:transform .4s ease;}
+  .puppy .ear{position:absolute; width:20px; height:30px; background:#fff; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; top:-12px; box-shadow:inset 0 -4px 6px rgba(139,92,246,.08);}
+  .puppy .ear.l{left:-2px; transform:rotate(-18deg);}
+  .puppy .ear.r{right:-2px; transform:rotate(18deg);}
+  .puppy .body{position:absolute; bottom:0; left:4px; width:56px; height:44px; background:#fff; border-radius:50% 50% 46% 46%; box-shadow:0 6px 14px rgba(139,92,246,.3);}
+  .puppy .cheek{position:absolute; width:9px; height:6px; background:var(--pink-300); border-radius:50%; bottom:14px; opacity:.75;}
+  .puppy .cheek.l{left:9px;} .puppy .cheek.r{right:9px;}
+  .puppy .eyes{position:absolute; top:16px; left:0; right:0; display:flex; justify-content:center; gap:13px;}
+  .puppy .eyes span{width:4px; height:6px; background:var(--ink-900); border-radius:50%;}
+  .puppy .tail{position:absolute; width:14px; height:14px; background:#fff; border-radius:50%; left:-8px; bottom:6px; box-shadow:0 2px 6px rgba(139,92,246,.25);}
+  .puppy .accessory{position:absolute; font-size:1.1rem; top:-22px; left:50%; transform:translateX(-50%);}
+  .puppy.wave{animation:wave 1.8s ease-in-out infinite;}
+  @keyframes wave{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-6deg) translateY(-3px);}}
+  .puppy.sleep .eyes span{height:2px; border-radius:2px;}
+  .puppy.bounce{animation:bounceUp .7s ease;}
+  @keyframes bounceUp{0%,100%{transform:translateY(0);}40%{transform:translateY(-24px);}70%{transform:translateY(0);}85%{transform:translateY(-8px);}}
+  @media (max-width:420px){ .puppy{transform:scale(.8); right:10px; bottom:10px;} }
+
+  /* ---------- effects layer (hearts / petals / butterflies / confetti) ---------- */
+  #fx-layer{position:fixed; inset:0; z-index:15; overflow:hidden; pointer-events:none;}
+  .fx-item{position:absolute; top:-10vh; font-size:1.4rem; animation-timing-function:linear; animation-fill-mode:forwards;}
+  @keyframes driftDown{
+    0%{transform:translateY(0) translateX(0) rotate(0deg); opacity:0;}
+    10%{opacity:1;}
+    100%{transform:translateY(115vh) translateX(var(--sway,20px)) rotate(300deg); opacity:0;}
+  }
+  @keyframes driftUp{
+    0%{transform:translateY(0) translateX(0); opacity:0;}
+    10%{opacity:1;}
+    100%{transform:translateY(-110vh) translateX(var(--sway,10px)); opacity:0;}
+  }
+  .fx-butterfly{animation:butterflyDrift 5s ease-in-out infinite;}
+  @keyframes butterflyDrift{
+    0%{transform:translate(0,0) rotate(0deg);}
+    25%{transform:translate(28px,-24px) rotate(8deg);}
+    50%{transform:translate(56px,4px) rotate(-6deg);}
+    75%{transform:translate(28px,26px) rotate(6deg);}
+    100%{transform:translate(0,0) rotate(0deg);}
+  }
+  #confetti-canvas{position:fixed; inset:0; z-index:35; pointer-events:none;}
+
+  /* ---------- page 5: mirror ---------- */
+  .mirror{
+    width:150px; height:190px; border-radius:50% 50% 45% 45%/60% 60% 40% 40%;
+    background:linear-gradient(160deg,#fff,rgba(196,181,253,.5));
+    border:6px solid rgba(139,92,246,.35);
+    box-shadow:var(--shadow-glow), inset 0 0 30px rgba(255,255,255,.7);
+    margin-bottom:18px;
+  }
+
+  /* ---------- page 10: heart count game ---------- */
+  .heart-field{position:relative; width:min(300px,80vw); height:180px; margin:10px 0 6px; background:rgba(255,255,255,.4); border-radius:20px; border:2px dashed rgba(139,92,246,.3);}
+  .heart-field span{position:absolute; font-size:1.3rem;}
+  .game-row{display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; justify-content:center;}
+  .game-row input{
+    width:70px; padding:8px 10px; border-radius:10px; border:2px solid var(--lavender-300);
+    font-family:var(--font-body); font-size:1rem; text-align:center; color:var(--ink-900);
+  }
+  .game-row input:focus-visible{outline:3px solid var(--gold-200);}
+  .game-msg{min-height:1.4em; font-weight:600; color:var(--purple-700);}
+
+  /* ---------- page 12: quiz ---------- */
+  .choice-row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:14px;}
+  .choice-btn{
+    padding:10px 20px; border-radius:14px; font-weight:600; color:var(--purple-700);
+    background:#fff; border:2px solid var(--lavender-300); box-shadow:0 4px 12px rgba(139,92,246,.15);
+  }
+  .choice-btn[disabled]{opacity:.55; cursor:default;}
+  .choice-btn.picked{background:var(--purple-500); color:#fff; border-color:var(--purple-500);}
+
+  /* ---------- page 13: buku tamu alam ---------- */
+  .guestbook{
+    width:min(360px,86vw); background:var(--cream);
+    border-radius:10px 14px 14px 10px;
+    padding:20px 22px 14px;
+    box-shadow:0 14px 30px rgba(139,92,246,.22), inset 3px 0 0 rgba(139,92,246,.25);
+    transform:rotate(-1.2deg);
+    text-align:left;
+  }
+  .gb-entry{
+    padding:10px 0; border-bottom:1px dashed rgba(139,92,246,.25);
+  }
+  .gb-entry:last-child{border-bottom:none;}
+  .gb-signer{
+    font-family:var(--font-script); font-weight:600; font-size:1.3rem;
+    color:var(--purple-700); margin-bottom:2px; display:flex; align-items:center; gap:6px;
+  }
+  .guestbook p.tw{font-size:.98rem; line-height:1.5; text-align:left;}
+
+  /* ---------- page 17: loading ---------- */
+  .load-track{width:min(280px,75vw); height:10px; border-radius:99px; background:rgba(139,92,246,.15); overflow:hidden; margin-top:16px;}
+  .load-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--purple-500),var(--pink-300)); border-radius:99px;}
+
+  /* ---------- page 18: error ---------- */
+  .glitch{font-family:var(--font-display); font-weight:800; font-size:2.6rem; color:#B91C6B; letter-spacing:.02em;}
+
+  /* ---------- page 23: countdown ---------- */
+  .count-num{font-family:var(--font-display); font-weight:800; font-size:3.4rem; color:var(--purple-700); margin:8px 0;}
+
+  /* ---------- page 22: gift ---------- */
+  .gift-box{font-size:3.2rem; margin-bottom:6px;}
+
+  /* ---------- page 25: ending ---------- */
+  #p25 .tw-wrap{max-width:520px;}
+  #p25 .title-big{font-size:clamp(1.6rem,6vw,2.1rem); margin-bottom:16px;}
+  #star-heart{width:min(280px,70vw); height:220px; margin-top:10px; opacity:0; transition:opacity 1.2s ease;}
+  #star-heart.show{opacity:1;}
+  .restart-link{margin-top:14px; font-size:.85rem; color:var(--ink-600); text-decoration:underline; background:none; border:none; cursor:pointer;}
+  .action-btn.final{background:linear-gradient(90deg,#B26BD8,var(--pink-300)); cursor:default;}
+
+  /* ---------- sound toggle ---------- */
+  #sound-toggle{
+    position:fixed; top:14px; right:14px; z-index:31; width:38px; height:38px; border-radius:50%;
+    background:rgba(255,255,255,.75); box-shadow:0 4px 12px rgba(139,92,246,.25);
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+  }
+  #sound-toggle:focus-visible{outline:3px solid var(--gold-200);}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="bubbles" id="bubbles" aria-hidden="true"></div>
+<div id="fx-layer" aria-hidden="true"></div>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+<div class="progress-rail">
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="progress-label" id="progress-label">Pameran 1 / 25</div>
+</div>
+
+<button id="sound-toggle" aria-label="Nyalakan atau matikan musik latar">🔈</button>
+<audio id="bgm" loop></audio>
+
+<div class="puppy wave" id="puppy" aria-hidden="true">
+  <div class="ear l"></div><div class="ear r"></div>
+  <div class="body"></div>
+  <div class="cheek l"></div><div class="cheek r"></div>
+  <div class="eyes"><span></span><span></span></div>
+  <div class="tail"></div>
+  <div class="accessory" id="puppy-accessory"></div>
+</div>
+
+<div id="stage">
+
+  <!-- PAGE 1 -->
+  <section class="page" id="p1">
+    <div class="eyebrow">THE PURPLE MUSEUM OF YOU</div>
+    <p class="script-note">Sebuah museum kecil yang dibangun untuk merayakan seseorang yang bahkan tidak pernah menyadari betapa luar biasanya dirinya.</p>
+    <div class="tw-wrap"><p class="tw" data-text="Halo... Aku ingin menunjukkan sesuatu. Tapi jangan buru-buru ya..."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 2 -->
+  <section class="page dark" id="p2">
+    <div class="tw-wrap"><p class="tw" data-text="Ada jutaan manusia di dunia."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 3 -->
+  <section class="page dark" id="p3">
+    <div class="tw-wrap"><p class="tw" data-text="Namun entah mengapa... aku justru membuat website ini untuk satu orang."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 4 -->
+  <section class="page" id="p4">
+    <div class="tw-wrap"><p class="tw" data-text="Orang itu mungkin tidak sadar... bahwa dirinya sangat berharga."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 5 -->
+  <section class="page" id="p5">
+    <div class="mirror" aria-hidden="true"></div>
+    <div class="tw-wrap"><p class="tw" data-text="Coba lihat ke cermin."></p></div>
+    <button class="reveal-btn" id="p5-reveal">Lanjut →</button>
+    <div class="tw-wrap"><p class="tw hidden" id="p5-line2" data-text="Masih belum kelihatan?"></p></div>
+    <button class="next-btn hidden" id="p5-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 6 -->
+  <section class="page" id="p6">
+    <div class="tw-wrap"><p class="tw" data-text="Ya sudah... Aku bantu kasih tahu."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 7 -->
+  <section class="page" id="p7">
+    <h2 class="title-big">Cantik.</h2>
+    <div class="tw-wrap">
+      <p class="tw" data-text="Bukan cantik yang membuat semua mata menoleh."></p>
+      <p class="tw" data-text="Tetapi cantik yang membuat seseorang betah memandang tanpa merasa bosan."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 8 -->
+  <section class="page" id="p8">
+    <h2 class="title-big">Jelita.</h2>
+    <div class="tw-wrap"><p class="tw" data-text="Rasanya seperti melihat fajar pertama setelah hujan."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 9 -->
+  <section class="page" id="p9">
+    <h2 class="title-big">Lucu.</h2>
+    <div class="tw-wrap">
+      <p class="tw" data-text="Lucunya bukan karena berusaha menjadi lucu."></p>
+      <p class="tw" data-text="Tetapi karena setiap tingkahmu berhasil membuat hari yang biasa menjadi luar biasa."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 10: mini game -->
+  <section class="page" id="p10">
+    <div class="eyebrow">Mini game</div>
+    <p style="margin:0 0 4px;">Coba hitung, ada berapa banyak hati di bawah ini?</p>
+    <div class="heart-field" id="heart-field"></div>
+    <div class="game-row">
+      <input type="number" id="heart-guess" min="0" aria-label="Tebakan jumlah hati">
+      <button class="action-btn" id="heart-check" style="margin-top:0;">Cek Jawaban</button>
+    </div>
+    <p class="game-msg" id="heart-msg"></p>
+    <button class="next-btn hidden" id="p10-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 11 -->
+  <section class="page dark" id="p11">
+    <div class="tw-wrap"><p class="tw" data-text="Kalau bintang bisa iri... mungkin malam sudah lama protes."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 12: quiz -->
+  <section class="page" id="p12">
+    <p style="font-weight:700; font-size:1.15rem; margin:0;">Apa bagian paling indah darimu?</p>
+    <div class="choice-row">
+      <button class="choice-btn" data-choice="Mata">Mata</button>
+      <button class="choice-btn" data-choice="Senyum">Senyum</button>
+      <button class="choice-btn" data-choice="Semua">Semua</button>
+    </div>
+    <p class="tw hidden" id="p12-answer" data-text="Jawaban yang benar sebenarnya... semuanya." style="margin-top:16px; font-weight:600; color:var(--purple-700);"></p>
+    <button class="next-btn hidden" id="p12-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 13: buku tamu alam -->
+  <section class="page" id="p13">
+    <div class="eyebrow">Buku Tamu Museum</div>
+    <p class="script-note" style="margin-bottom:14px;">Katanya, alam juga ingin ikut menulis sesuatu untukmu.</p>
+    <div class="guestbook" aria-hidden="false">
+      <div class="gb-entry">
+        <div class="gb-signer">🌙 Bulan</div>
+        <p class="tw" data-text="Aku pernah purnama penuh, tapi tetap kalah bersinar oleh senyummu."></p>
+      </div>
+      <div class="gb-entry">
+        <div class="gb-signer">☁️ Langit</div>
+        <p class="tw" data-text="Aku pinjam sedikit warnamu untuk senja hari ini."></p>
+      </div>
+      <div class="gb-entry">
+        <div class="gb-signer">🌸 Bunga</div>
+        <p class="tw" data-text="Aku mekar duluan, katanya biar tidak kalah cantik. Ternyata tetap kalah."></p>
+      </div>
+      <div class="gb-entry">
+        <div class="gb-signer">🍃 Angin</div>
+        <p class="tw" data-text="Aku singgah sebentar, hanya untuk membisikkan: dia benar-benar istimewa."></p>
+      </div>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 14 -->
+  <section class="page" id="p14">
+    <div class="tw-wrap">
+      <p class="tw" data-text="Ada orang yang membuat taman menjadi indah."></p>
+      <p class="tw" data-text="Dan ada kamu... yang membuat dunia terasa lebih indah."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 15 -->
+  <section class="page" id="p15">
+    <div style="font-size:2.4rem; margin-bottom:6px;">☁️💤</div>
+    <div class="tw-wrap"><p class="tw" data-text="Istirahat ya. Besok dunia masih butuh senyummu."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 16 -->
+  <section class="page" id="p16">
+    <div class="tw-wrap"><p class="tw" data-text="Aku punya rahasia."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 17: loading -->
+  <section class="page" id="p17">
+    <p style="margin:0 0 4px;">Mengumpulkan seluruh alasan kenapa kamu luar biasa...</p>
+    <div class="load-track"><div class="load-fill" id="load-fill"></div></div>
+  </section>
+
+  <!-- PAGE 18: error reveal -->
+  <section class="page" id="p18">
+    <h2 class="glitch">Error.</h2>
+    <button class="reveal-btn" id="p18-reveal">Ketuk untuk lihat pesannya</button>
+    <div class="tw-wrap"><p class="tw hidden" id="p18-msg" data-text="Alasan terlalu banyak."></p></div>
+    <button class="next-btn hidden" id="p18-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 19: quote reveal -->
+  <section class="page dark" id="p19">
+    <div class="tw-wrap">
+      <p class="tw" data-text="Seseorang pernah berkata..."></p>
+      <p class="tw" data-text="Kesempurnaan itu tidak ada."></p>
+    </div>
+    <button class="reveal-btn" id="p19-reveal">💜</button>
+    <div class="tw-wrap"><p class="tw hidden" id="p19-msg" data-text="Sepertinya dia belum bertemu kamu."></p></div>
+    <button class="next-btn hidden" id="p19-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 20: galaxy -->
+  <section class="page dark" id="p20">
+    <div class="tw-wrap">
+      <p class="tw" data-text="Andai semesta diberi kesempatan melukis seseorang..."></p>
+      <p class="tw" data-text="Mungkin hasilnya adalah dirimu."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 21 -->
+  <section class="page" id="p21">
+    <div class="tw-wrap">
+      <p class="tw" data-text="Ada kecantikan yang dapat dilihat mata."></p>
+      <p class="tw" data-text="Dan ada kecantikan yang hanya dapat dirasakan hati."></p>
+      <p class="tw" data-text="Kamu memiliki keduanya."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 22 -->
+  <section class="page" id="p22">
+    <div class="gift-box" aria-hidden="true">🎁</div>
+    <div class="tw-wrap">
+      <p class="tw" data-text="Hadiahnya sederhana."></p>
+      <p class="tw" data-text="Website kecil ini."></p>
+    </div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 23: countdown -->
+  <section class="page" id="p23">
+    <div class="tw-wrap"><p class="tw" data-text="Masih satu halaman lagi..."></p></div>
+    <div class="count-num" id="count-num">3</div>
+    <button class="next-btn hidden" id="p23-next">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 24: flash -->
+  <section class="page" id="p24">
+    <div class="tw-wrap"><p class="tw" data-text="Terima kasih sudah menjadi dirimu sendiri."></p></div>
+    <button class="next-btn">Lanjut →</button>
+  </section>
+
+  <!-- PAGE 25: ending -->
+  <section class="page dark" id="p25">
+    <h2 class="title-big">Aku Tidak Tahu Bagaimana Mengatakannya</h2>
+    <div class="tw-wrap">
+      <p class="tw-ending" data-text="Aku tidak tahu apakah ada kata yang cukup indah untuk menggambarkanmu."></p>
+      <p class="tw-ending" data-text="Sebab setiap kali mencoba merangkainya, selalu ada sesuatu yang terasa kurang."></p>
+      <p class="tw-ending" data-text="Mungkin karena kecantikanmu memang tidak diciptakan untuk selesai dijelaskan oleh bahasa."></p>
+      <p class="tw-ending" data-text="Jadi, izinkan website kecil ini menjadi saksi bahwa di suatu sudut dunia, pernah ada seseorang yang menganggapmu begitu istimewa."></p>
+      <p class="tw-ending" data-text="Dan semoga, setiap kali kamu meragukan dirimu sendiri, kamu akan mengingat satu hal:"></p>
+      <p class="tw-ending" style="font-weight:700; font-family:var(--font-display); font-size:1.2rem;" data-text="Kamu lebih indah daripada yang kamu percaya. 💜"></p>
+    </div>
+    <button class="action-btn hidden" id="hug-btn">Peluk Virtual dari Cinnamoroll 🫂</button>
+    <canvas id="star-heart" aria-hidden="true"></canvas>
+    <button class="restart-link hidden" id="restart-btn">↺ Lihat ulang dari awal</button>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const TOTAL = 25;
+  let current = 1;
+
+  const $  = (sel, ctx) => (ctx||document).querySelector(sel);
+  const $$ = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
+
+  const progressFill  = $('#progress-fill');
+  const progressLabel = $('#progress-label');
+  const fxLayer = $('#fx-layer');
+  const puppy = $('#puppy');
+  const puppyAccessory = $('#puppy-accessory');
+
+  /* ---------------- ambient starfield canvas ---------------- */
+  const bgCanvas = $('#bg-canvas');
+  const bctx = bgCanvas.getContext('2d');
+  let stars = [];
+  function resizeCanvas(){
+    bgCanvas.width = window.innerWidth;
+    bgCanvas.height = window.innerHeight;
+    const count = Math.round((window.innerWidth * window.innerHeight) / 9000);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random()*bgCanvas.width,
+      y: Math.random()*bgCanvas.height,
+      r: Math.random()*1.6+0.4,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.01 + Math.random()*0.02
+    }));
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function drawStars(t){
+    bctx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+    const dark = document.body.classList.contains('dark-scene');
+    stars.forEach(s=>{
+      const tw = 0.4 + 0.6*Math.abs(Math.sin(s.phase + t*s.speed));
+      bctx.beginPath();
+      bctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      bctx.fillStyle = dark ? `rgba(253,231,168,${tw*0.9})` : `rgba(139,92,246,${tw*0.35})`;
+      bctx.fill();
+    });
+    if(!reduceMotion) requestAnimationFrame(drawStars);
+  }
+  requestAnimationFrame(drawStars);
+
+  /* ---------------- ambient bubbles ---------------- */
+  const bubbleHost = $('#bubbles');
+  for(let i=0;i<10;i++){
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 14 + Math.random()*34;
+    b.style.width = size+'px';
+    b.style.height = size+'px';
+    b.style.left = Math.random()*100+'%';
+    b.style.animationDuration = (14+Math.random()*10)+'s';
+    b.style.animationDelay = (Math.random()*14)+'s';
+    bubbleHost.appendChild(b);
+  }
+
+  /* ---------------- typewriter ---------------- */
+  function typeEl(el, speed){
+    speed = speed || 26;
+    const text = el.dataset.text != null ? el.dataset.text : el.textContent;
+    el.dataset.text = text;
+    if(reduceMotion || el.dataset.done){
+      el.textContent = text;
+      el.dataset.done = "1";
+      return Promise.resolve();
+    }
+    el.textContent = '';
+    el.classList.add('typing');
+    return new Promise(resolve=>{
+      let i = 0;
+      const iv = setInterval(()=>{
+        el.textContent += text[i];
+        i++;
+        if(i>=text.length){
+          clearInterval(iv);
+          el.classList.remove('typing');
+          el.dataset.done = "1";
+          resolve();
+        }
+      }, speed);
+    });
+  }
+  async function runTypewriters(container){
+    const targets = $$('.tw', container).filter(t=>!t.classList.contains('hidden'));
+    for(const t of targets){ await typeEl(t); }
+  }
+
+  /* ---------------- fx helpers ---------------- */
+  function clearFx(){ fxLayer.innerHTML = ''; }
+  function spawnFalling(emoji, count, opts){
+    opts = opts || {};
+    for(let i=0;i<count;i++){
+      const el = document.createElement('span');
+      el.className = 'fx-item';
+      el.textContent = emoji;
+      el.style.left = Math.random()*94+'%';
+      el.style.setProperty('--sway', (Math.random()*60-30)+'px');
+      const dur = (opts.minDur||5) + Math.random()*(opts.durRange||4);
+      el.style.animation = `${opts.dir==='up'?'driftUp':'driftDown'} ${dur}s linear ${Math.random()*1.2}s forwards`;
+      el.style.fontSize = (opts.minSize||1)+Math.random()*(opts.sizeRange||0.8)+'rem';
+      if(opts.dir==='up'){ el.style.top='auto'; el.style.bottom='-8vh'; }
+      fxLayer.appendChild(el);
+      setTimeout(()=>el.remove(), (dur+2)*1000);
+    }
+  }
+  function spawnButterflies(count){
+    for(let i=0;i<count;i++){
+      const el = document.createElement('span');
+      el.className = 'fx-item fx-butterfly';
+      el.textContent = '🦋';
+      el.style.top = (20+Math.random()*50)+'%';
+      el.style.left = (10+Math.random()*75)+'%';
+      el.style.fontSize = '1.6rem';
+      el.style.animationDuration = (4+Math.random()*3)+'s';
+      fxLayer.appendChild(el);
+    }
+  }
+
+  /* confetti */
+  const confettiCanvas = $('#confetti-canvas');
+  const cctx = confettiCanvas.getContext('2d');
+  function confettiBurst(count){
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    const colors = ['#8B5CF6','#C4B5FD','#F5A9D0','#FDE7A8','#FFFFFF'];
+    let particles = Array.from({length: count}, ()=>({
+      x: Math.random()*confettiCanvas.width,
+      y: -20 - Math.random()*100,
+      w: 5+Math.random()*5,
+      h: 8+Math.random()*6,
+      vy: 2+Math.random()*3,
+      vx: -1.5+Math.random()*3,
+      rot: Math.random()*360,
+      vr: -6+Math.random()*12,
+      color: colors[Math.floor(Math.random()*colors.length)]
+    }));
+    let frames = 0;
+    const maxFrames = reduceMotion ? 1 : 220;
+    (function step(){
+      cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+      particles.forEach(p=>{
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        cctx.save();
+        cctx.translate(p.x,p.y);
+        cctx.rotate(p.rot*Math.PI/180);
+        cctx.fillStyle = p.color;
+        cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+        cctx.restore();
+      });
+      frames++;
+      if(frames<maxFrames){ requestAnimationFrame(step); }
+      else { cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height); }
+    })();
+  }
+
+  /* star-heart signature canvas for the ending */
+  function drawStarHeart(){
+    const canvas = $('#star-heart');
+    canvas.width = canvas.clientWidth * 2;
+    canvas.height = canvas.clientHeight * 2;
+    const ctx = canvas.getContext('2d');
+    const pts = [];
+    for(let a=0; a<Math.PI*2; a+=0.22){
+      const x = 16*Math.pow(Math.sin(a),3);
+      const y = -(13*Math.cos(a) - 5*Math.cos(2*a) - 2*Math.cos(3*a) - Math.cos(4*a));
+      pts.push({x, y, phase: Math.random()*Math.PI*2});
+    }
+    const scale = canvas.width/40;
+    const cx = canvas.width/2, cy = canvas.height/2 + canvas.height*0.05;
+    canvas.classList.add('show');
+    function frame(t){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      pts.forEach(p=>{
+        const tw = 0.5 + 0.5*Math.sin(t*0.002 + p.phase);
+        ctx.beginPath();
+        ctx.arc(cx + p.x*scale, cy + p.y*scale, 2.4*scale/10, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(253,231,168,${0.5+tw*0.5})`;
+        ctx.shadowColor = 'rgba(253,231,168,0.8)';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+      });
+      if(!reduceMotion) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- puppy poses ---------------- */
+  const poses = {
+    1:{cls:'wave', icon:''}, 9:{cls:'', icon:'😄'}, 13:{cls:'', icon:'🪶'}, 15:{cls:'sleep', icon:'💤'},
+    22:{cls:'', icon:'🎁'}, 25:{cls:'', icon:'💜'}
+  };
+  function setPuppyPose(n){
+    puppy.className = 'puppy';
+    puppyAccessory.textContent = '';
+    const p = poses[n];
+    if(p){
+      if(p.cls) puppy.classList.add(p.cls);
+      puppyAccessory.textContent = p.icon;
+    }
+  }
+
+  /* ---------------- page-specific setup (runs once) ---------------- */
+  function setupHeartGame(){
+    const field = $('#heart-field');
+    const target = 9 + Math.floor(Math.random()*5); // 9-13
+    field.dataset.target = target;
+    for(let i=0;i<target;i++){
+      const h = document.createElement('span');
+      h.textContent = '💜';
+      h.style.left = (4+Math.random()*86)+'%';
+      h.style.top = (6+Math.random()*80)+'%';
+      field.appendChild(h);
+    }
+    $('#heart-check').addEventListener('click', ()=>{
+      const val = parseInt($('#heart-guess').value, 10);
+      const msg = $('#heart-msg');
+      if(val === target){
+        msg.textContent = 'Benar! Tapi tetap lebih banyak rasa kagumku.';
+        $('#p10-next').classList.remove('hidden');
+      } else {
+        msg.textContent = 'Coba lagi, hitung pelan-pelan~';
+      }
+    });
+  }
+
+  function setupMirror(){
+    $('#p5-reveal').addEventListener('click', ()=>{
+      $('#p5-reveal').classList.add('hidden');
+      $('#p5-line2').classList.remove('hidden');
+      typeEl($('#p5-line2')).then(()=> $('#p5-next').classList.remove('hidden'));
+    });
+  }
+
+  function setupQuiz(){
+    $$('.choice-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        $$('.choice-btn').forEach(b=>{ b.disabled = true; });
+        btn.classList.add('picked');
+        const ans = $('#p12-answer');
+        ans.classList.remove('hidden');
+        typeEl(ans).then(()=> $('#p12-next').classList.remove('hidden'));
+      });
+    });
+  }
+
+  function setupErrorReveal(){
+    $('#p18-reveal').addEventListener('click', ()=>{
+      $('#p18-reveal').classList.add('hidden');
+      const msg = $('#p18-msg');
+      msg.classList.remove('hidden');
+      typeEl(msg).then(()=> $('#p18-next').classList.remove('hidden'));
+    });
+  }
+
+  function setupQuoteReveal(){
+    $('#p19-reveal').addEventListener('click', ()=>{
+      $('#p19-reveal').classList.add('hidden');
+      const msg = $('#p19-msg');
+      msg.classList.remove('hidden');
+      typeEl(msg).then(()=> $('#p19-next').classList.remove('hidden'));
+    });
+  }
+
+  function setupEnding(){
+    const el = $('#p25');
+    (async ()=>{
+      const lines = $$('.tw-ending', el);
+      for(const line of lines){ await typeEl(line, 20); }
+      $('#hug-btn').classList.remove('hidden');
+    })();
+    $('#hug-btn').addEventListener('click', function(){
+      confettiBurst(160);
+      spawnFalling('💜', 14, {dir:'up', minDur:4, durRange:3});
+      spawnFalling('✨', 10, {dir:'up', minDur:5, durRange:3});
+      puppy.classList.add('bounce');
+      setTimeout(()=>puppy.classList.remove('bounce'), 700);
+      drawStarHeart();
+      this.disabled = true;
+      this.textContent = 'Terima kasih sudah membaca sampai akhir.';
+      this.classList.add('final');
+      $('#restart-btn').classList.remove('hidden');
+    });
+    $('#restart-btn').addEventListener('click', ()=>{
+      current = 1;
+      showPage(1);
+    });
+  }
+
+  function setupCountdown(){
+    const numEl = $('#count-num');
+    let n = 3;
+    numEl.textContent = n;
+    if(reduceMotion){
+      $('#p23-next').classList.remove('hidden');
+      return;
+    }
+    const iv = setInterval(()=>{
+      n--;
+      if(n<=0){
+        clearInterval(iv);
+        numEl.textContent = '✨';
+        $('#p23-next').classList.remove('hidden');
+      } else {
+        numEl.textContent = n;
+      }
+    }, 800);
+  }
+
+  function setupLoading(){
+    const fill = $('#load-fill');
+    let pct = 0;
+    const iv = setInterval(()=>{
+      pct += reduceMotion ? 100 : 4;
+      fill.style.width = Math.min(pct,100)+'%';
+      if(pct>=100){
+        clearInterval(iv);
+        setTimeout(goNext, 500);
+      }
+    }, 45);
+  }
+
+  const oneTimeSetups = {
+    5: setupMirror, 10: setupHeartGame, 12: setupQuiz,
+    18: setupErrorReveal, 19: setupQuoteReveal, 23: () => {}, 25: setupEnding
+  };
+  const doneSetups = new Set();
+
+  /* ---------------- per-page enter effects (can repeat) ---------------- */
+  function runPageEffects(n){
+    clearFx();
+    if(n===4) spawnFalling('💜', 12, {minDur:6, durRange:3});
+    if(n===7) spawnFalling('🌸', 14, {minDur:6, durRange:3});
+    if(n===14) spawnButterflies(4);
+    if(n===16) confettiBurst(60);
+    if(n===17) setupLoading();
+    if(n===21) spawnFalling('🌷', 16, {minDur:6, durRange:3});
+    if(n===23) setupCountdown();
+    if(n===24){ document.body.classList.add('flash-once'); setTimeout(()=>document.body.classList.remove('flash-once'), 900); }
+  }
+
+  const darkPages = new Set([2,3,11,19,20,25]);
+
+  function showPage(n){
+    $$('.page').forEach(p=>p.classList.remove('active'));
+    const el = $('#p'+n);
+    el.classList.add('active');
+    current = n;
+    document.body.classList.toggle('dark-scene', darkPages.has(n));
+    progressFill.style.width = (n/TOTAL*100)+'%';
+    progressLabel.textContent = `Pameran ${n} / ${TOTAL}`;
+    setPuppyPose(n);
+    if(oneTimeSetups[n] && !doneSetups.has(n)){
+      oneTimeSetups[n]();
+      doneSetups.add(n);
+    }
+    runTypewriters(el);
+    runPageEffects(n);
+  }
+
+  function goNext(){
+    if(current < TOTAL) showPage(current+1);
+  }
+
+  document.addEventListener('click', (e)=>{
+    if(e.target.closest('.next-btn')) goNext();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight' || e.key===' '){
+      const activeNext = $('.page.active .next-btn:not(.hidden)');
+      if(activeNext){ e.preventDefault(); goNext(); }
+    }
+  });
+  let touchX = null;
+  document.addEventListener('touchstart', e=>{ touchX = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(touchX===null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if(dx < -60){
+      const activeNext = $('.page.active .next-btn:not(.hidden)');
+      if(activeNext) goNext();
+    }
+    touchX = null;
+  }, {passive:true});
+
+  /* sound toggle (no bundled audio: user can point #bgm to their own track) */
+  const bgm = $('#bgm');
+  const soundBtn = $('#sound-toggle');
+  let soundOn = false;
+  soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? '🔊' : '🔈';
+    if(soundOn){ bgm.play().catch(()=>{}); } else { bgm.pause(); }
+  });
+
+  showPage(1);
+})();
+</script>
+</body>
+</html>
